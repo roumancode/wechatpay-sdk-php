@@ -36,16 +36,19 @@ class BaseService
     //「商户API证书」的「证书序列号」
     protected $merchantCertificateSerial;
 
+    //「微信支付公钥」文件路径
+    protected $platformPublicKeyFilePath;
+
     //「微信支付平台证书」文件路径
     protected $platformCertificateFilePath;
 
-    //微信支付平台证书序列号
+    //微信支付公钥/平台证书序列号
     protected $platformCertificateSerial;
 
     //商户API私钥
     protected $merchantPrivateKeyInstance;
 
-    //微信支付平台证书
+    //微信支付公钥/平台证书
     protected $platformPublicKeyInstance;
 
     //是否国际版商户
@@ -85,6 +88,9 @@ class BaseService
         $this->apiKey = $config['apikey'];
         $this->merchantPrivateKeyFilePath = $config['merchantPrivateKeyFilePath'];
         $this->merchantCertificateSerial = $config['merchantCertificateSerial'];
+        if (isset($config['platformPublicKeyFilePath'])) {
+            $this->platformPublicKeyFilePath = $config['platformPublicKeyFilePath'];
+        }
         $this->platformCertificateFilePath = $config['platformCertificateFilePath'];
         $this->platformCertificateSerial = $config['platformCertificateSerial'];
         if (isset($config['sub_mchid'])) {
@@ -114,8 +120,14 @@ class BaseService
         if (!$this->merchantPrivateKeyInstance) {
             throw new Exception("商户API私钥错误");
         }
-        //读取微信支付平台证书或公钥
-        if (file_exists($this->platformCertificateFilePath)) {
+        //读取微信支付公钥或平台证书
+        if (!empty($this->platformPublicKeyFilePath) && file_exists($this->platformPublicKeyFilePath) && !empty($this->platformCertificateSerial)) {
+            $publicKey = file_get_contents($this->platformPublicKeyFilePath);
+            $this->platformPublicKeyInstance = openssl_pkey_get_public($publicKey);
+            if (!$this->platformPublicKeyInstance) {
+                throw new Exception("微信支付公钥错误");
+            }
+        } elseif (file_exists($this->platformCertificateFilePath)) {
             $certificate = file_get_contents($this->platformCertificateFilePath);
             $this->platformPublicKeyInstance = openssl_pkey_get_public($certificate);
             if($this->platformPublicKeyInstance && empty($this->platformCertificateSerial)) {
@@ -292,11 +304,29 @@ class BaseService
 
         if (empty($signature)) return false;
         if ($serial != $this->platformCertificateSerial) {
-            if (!$this->download_cert) {
-                $this->downloadCertificate();
-            }
-            if ($serial != $this->platformCertificateSerial) {
-                throw new Exception('平台证书序列号不匹配');
+            if (substr($serial, 0, 11) == 'PUB_KEY_ID_') {
+                throw new Exception('微信支付公钥ID不匹配');
+            } else {
+                if (substr($this->platformCertificateSerial, 0, 11) == 'PUB_KEY_ID_') {
+                    if (file_exists($this->platformCertificateFilePath)) {
+                        $certificate = file_get_contents($this->platformCertificateFilePath);
+                        $this->platformPublicKeyInstance = openssl_pkey_get_public($certificate);
+                        if($this->platformPublicKeyInstance) {
+                            $cert_info = openssl_x509_parse($certificate);
+                            if ($cert_info && isset($cert_info['serialNumberHex'])) {
+                                $this->platformCertificateSerial = $cert_info['serialNumberHex'];
+                            }
+                        }
+                    }
+                }
+                if ($serial != $this->platformCertificateSerial) {
+                    if (!$this->download_cert) {
+                        $this->downloadCertificate();
+                    }
+                    if ($serial != $this->platformCertificateSerial) {
+                        throw new Exception('平台证书序列号不匹配');
+                    }
+                }
             }
         }
 

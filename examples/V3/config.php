@@ -39,9 +39,14 @@ $wechatpay_config = [
     'merchantCertificateSerial' => '',
 
     /**
-     * 「微信支付平台证书或公钥」文件路径
+     * 「微信支付公钥」文件路径
      */
-    'platformCertificateFilePath' => dirname(__FILE__).'/cert/pub_key.pem',
+    'platformPublicKeyFilePath' => dirname(__FILE__).'/cert/pub_key.pem',
+
+    /**
+     * 「微信支付平台证书」文件路径
+     */
+    'platformCertificateFilePath' => dirname(__FILE__).'/cert/cert.pem',
 
     /**
      * 微信支付平台公钥ID
