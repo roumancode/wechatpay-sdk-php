@@ -411,6 +411,9 @@ class BaseService
         ]] = $inBodyArray;
         // 加密文本消息解密
         $inBodyResource = $this->decryptToString($ciphertext, $nonce, $associated_data);
+        if (is_null($inBodyResource)) {
+            throw new Exception('数据解密失败');
+        }
         // 把解密后的文本转换为PHP Array数组
 	    // print_r($inBodyResourceArray);
         return json_decode($inBodyResource, true);
