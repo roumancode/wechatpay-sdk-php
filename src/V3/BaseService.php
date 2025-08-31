@@ -122,23 +122,43 @@ class BaseService
         }
         //读取微信支付公钥或平台证书
         if (!empty($this->platformPublicKeyFilePath) && file_exists($this->platformPublicKeyFilePath) && !empty($this->platformCertificateSerial)) {
-            $publicKey = file_get_contents($this->platformPublicKeyFilePath);
-            $this->platformPublicKeyInstance = openssl_pkey_get_public($publicKey);
-            if (!$this->platformPublicKeyInstance) {
-                throw new Exception("微信支付公钥错误");
-            }
-        } elseif (file_exists($this->platformCertificateFilePath)) {
+            $this->loadPlatformPublicKey();
+        } else {
+            $this->loadPlatformCertificate();
+        }
+    }
+
+    /**
+     * 加载微信支付公钥
+     * @throws Exception
+     */
+    private function loadPlatformPublicKey()
+    {
+        $publicKey = file_get_contents($this->platformPublicKeyFilePath);
+        $this->platformPublicKeyInstance = openssl_pkey_get_public($publicKey);
+        if (!$this->platformPublicKeyInstance) {
+            throw new Exception("微信支付公钥错误");
+        }
+    }
+
+    /**
+     * 加载微信支付平台证书
+     * @throws Exception
+     */
+    private function loadPlatformCertificate()
+    {
+        if (file_exists($this->platformCertificateFilePath)) {
             $certificate = file_get_contents($this->platformCertificateFilePath);
             $this->platformPublicKeyInstance = openssl_pkey_get_public($certificate);
-            if($this->platformPublicKeyInstance && empty($this->platformCertificateSerial)) {
+            if ($this->platformPublicKeyInstance) {
                 $cert_info = openssl_x509_parse($certificate);
                 if ($cert_info && isset($cert_info['serialNumberHex'])) {
                     $this->platformCertificateSerial = $cert_info['serialNumberHex'];
                 }
+            } else {
+                throw new Exception("微信支付平台证书错误");
             }
-        }
-        //没有微信支付平台证书，则下载证书
-        if (!$this->platformPublicKeyInstance) {
+        } else {
             $this->downloadCertificate();
         }
     }
@@ -308,16 +328,7 @@ class BaseService
                 throw new Exception('微信支付公钥ID不匹配');
             } else {
                 if (substr($this->platformCertificateSerial, 0, 11) == 'PUB_KEY_ID_') {
-                    if (file_exists($this->platformCertificateFilePath)) {
-                        $certificate = file_get_contents($this->platformCertificateFilePath);
-                        $this->platformPublicKeyInstance = openssl_pkey_get_public($certificate);
-                        if($this->platformPublicKeyInstance) {
-                            $cert_info = openssl_x509_parse($certificate);
-                            if ($cert_info && isset($cert_info['serialNumberHex'])) {
-                                $this->platformCertificateSerial = $cert_info['serialNumberHex'];
-                            }
-                        }
-                    }
+                    $this->loadPlatformCertificate();
                 }
                 if ($serial != $this->platformCertificateSerial) {
                     if (!$this->download_cert) {
@@ -393,7 +404,16 @@ class BaseService
             throw new Exception('no data');
         }
         if ($this->platformCertificateSerial != $inWechatpaySerial) {
-            throw new Exception('平台证书序列号不匹配');
+            if (substr($inWechatpaySerial, 0, 11) == 'PUB_KEY_ID_') {
+                throw new Exception('微信支付公钥ID不匹配');
+            } else {
+                if (substr($this->platformCertificateSerial, 0, 11) == 'PUB_KEY_ID_') {
+                    $this->loadPlatformCertificate();
+                }
+                if ($inWechatpaySerial != $this->platformCertificateSerial) {
+                    throw new Exception('平台证书序列号不匹配');
+                }
+            }
         }
 
         // 使用平台API证书验签
