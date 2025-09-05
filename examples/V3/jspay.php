@@ -1,48 +1,55 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * 微信支付JSAPI支付示例
  */
 
 require __DIR__ . '/../../vendor/autoload.php';
-@header('Content-Type: text/html; charset=UTF-8');
+header('Content-Type: text/html; charset=UTF-8');
+
 $hostInfo = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
 
 //引入配置文件
 $wechatpay_config = require('config.php');
 
 //①、获取用户openid
-try{
+try {
     $tools = new \WeChatPay\JsApiTool($wechatpay_config['appid'], $wechatpay_config['appsecret']);
     $openid = $tools->GetOpenid();
-}catch(Exception $e){
-    echo $e->getMessage();
+} catch (Exception $e) {
+    echo htmlspecialchars($e->getMessage());
     exit;
 }
 
 //②、统一下单
 $params = [
     'description' => 'sample body', //商品名称
-    'out_trade_no' => date("YmdHis").rand(111,999), //商户订单号
-    'notify_url' => $hostInfo.dirname($_SERVER['SCRIPT_NAME']).'/notify.php', //异步回调地址
+    'out_trade_no' => date("YmdHis") . random_int(111, 999), //商户订单号
+    'notify_url' => $hostInfo . dirname($_SERVER['SCRIPT_NAME']) . '/notify.php', //异步回调地址
     'amount' => [
         'total' => 150, //支付金额，单位：分
         'currency' => 'CNY'
     ],
-	'payer' => [
-		'openid' => $openid //用户Openid
-	],
+    'payer' => [
+        'openid' => $openid //用户Openid
+    ],
     'scene_info' => [
-        'payer_client_ip' => $_SERVER['REMOTE_ADDR'], //支付用户IP
-	]
+        'payer_client_ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', //支付用户IP
+    ]
 ];
 
 //发起支付请求
 try {
     $client = new \WeChatPay\V3\PaymentService($wechatpay_config);
     $result = $client->jsapiPay($params);
-    $jsApiParameters = json_encode($result);
+    $jsApiParameters = json_encode($result, JSON_UNESCAPED_UNICODE);
+    if ($jsApiParameters === false) {
+        throw new Exception('JSON编码失败');
+    }
 } catch (Exception $e) {
-    echo '微信支付下单失败！'.$e->getMessage();
+    echo '微信支付下单失败！' . htmlspecialchars($e->getMessage());
     exit;
 }
 ?>
@@ -74,18 +81,16 @@ try {
 			'getBrandWCPayRequest',
 			<?php echo $jsApiParameters; ?>,
 			function(res){
-				if(res.err_msg == "get_brand_wcpay_request:ok" ) {
-					alert('支付成功')
+				if(res.err_msg === "get_brand_wcpay_request:ok" ) {
+					alert('支付成功');
 				}
-				//WeixinJSBridge.log(res.err_msg);
-				//alert(res.err_code+res.err_desc+res.err_msg);
 			}
 		);
 	}
 
 	function callpay()
 	{
-		if (typeof WeixinJSBridge == "undefined"){
+		if (typeof WeixinJSBridge === "undefined"){
 		    if( document.addEventListener ){
 		        document.addEventListener('WeixinJSBridgeReady', jsApiCall, false);
 		    }else if (document.attachEvent){

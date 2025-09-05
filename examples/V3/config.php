@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * 微信支付商户信息配置文件
  * APIv3版本
  */
-$wechatpay_config = [
+return [
     /**
      * 绑定支付的APPID
      */
@@ -27,11 +29,10 @@ $wechatpay_config = [
      */
     'appsecret' => '',
 
-
     /**
      * 「商户API私钥」文件路径
      */
-    'merchantPrivateKeyFilePath' => dirname(__FILE__).'/cert/apiclient_key.pem',
+    'merchantPrivateKeyFilePath' => __DIR__ . '/cert/apiclient_key.pem',
 
     /**
      * 「商户API证书」的「证书序列号」
@@ -41,18 +42,17 @@ $wechatpay_config = [
     /**
      * 「微信支付公钥」文件路径
      */
-    'platformPublicKeyFilePath' => dirname(__FILE__).'/cert/pub_key.pem',
+    'platformPublicKeyFilePath' => __DIR__ . '/cert/pub_key.pem',
 
     /**
      * 「微信支付平台证书」文件路径
      */
-    'platformCertificateFilePath' => dirname(__FILE__).'/cert/cert.pem',
+    'platformCertificateFilePath' => __DIR__ . '/cert/cert.pem',
 
     /**
      * 微信支付平台公钥ID
      */
     'platformCertificateSerial' => '',
-
 
     /**
      * 子商户号
@@ -70,6 +70,4 @@ $wechatpay_config = [
      * 服务商模式可配置，需同时填写子商户号
      */
     //'ecommerce' => false,
-
 ];
-return $wechatpay_config;

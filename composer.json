@@ -1,5 +1,5 @@
 {
-	"name": "cccyun/wechatpay-sdk",
+	"name": "tailroubin/wechatpay-sdk",
 	"description": "微信支付第三方 PHP SDK，基于官方最新版本，包含V2和V3两种接口。",
 	"type": "library",
 	"keywords": [
@@ -11,7 +11,7 @@
 	"minimum-stability": "dev",
 	"prefer-stable": true,
 	"require": {
-		"php": ">=7.1",
+		"php": ">=8.0",
         "ext-openssl": "*",
         "ext-json": "*",
         "ext-curl": "*",
@@ -20,8 +20,8 @@
     },
 	"authors": [
 		{
-			"name": "caihong",
-			"email": "admin@cccyun.cn"
+			"name": "tailroubin",
+			"email": "tailroubin@taidor.com"
 		}
 	],
 	"autoload": {

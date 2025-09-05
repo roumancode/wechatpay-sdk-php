@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace WeChatPay;
 
+/**
+ * RSA工具类，提供RSA密钥格式转换功能
+ */
 class RsaTool
 {
     /**
@@ -14,7 +19,7 @@ class RsaTool
     private const CHR_ETX = "\3";
 
     /**
-     * Translate the \$thing strlen from `X690` style to the `ASN.1` 128bit hexadecimal length string
+     * Translate the $thing strlen from `X690` style to the `ASN.1` 128bit hexadecimal length string
      *
      * @param string $thing - The string
      *
@@ -34,42 +39,75 @@ class RsaTool
     /**
      * Convert the `PKCS#1` format RSA Public Key to `SPKI` format
      *
-     * @param string $thing - The base64-encoded string, without evelope style
+     * @param string $thing - The base64-encoded string, without envelope style
      *
-     * @return string The `SPKI` style public key without evelope string
+     * @return string The `SPKI` style public key without envelope string
      */
     public static function pkcs1ToSpki(string $thing): string
     {
-        $raw = self::CHR_NUL . base64_decode($thing);
+        $raw = self::CHR_NUL . base64_decode($thing, true);
+        if ($raw === false) {
+            throw new \InvalidArgumentException('Invalid base64 string provided');
+        }
+        
         $new = pack('H*', self::ASN1_OID_RSAENCRYPTION) . self::CHR_ETX . self::encodeLength($raw) . $raw;
 
         return base64_encode(pack('Ca*a*', self::ASN1_SEQUENCE, self::encodeLength($new), $new));
     }
 
+    /**
+     * 将PEM格式证书转换为Base64字符串
+     *
+     * @param string $data PEM格式证书内容
+     * @return string Base64编码的证书内容
+     */
     public static function pemToBase64(string $data): string
     {
-        $line = explode("\n", $data);
+        $lines = explode("\n", $data);
         $base64 = '';
-        foreach($line as $row){
-            if(empty($row) || strpos($row, '-----BEGIN')!==false || strpos($row, '-----END')!==false) continue;
-            $base64 .= trim($row);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '-----BEGIN') || str_starts_with($line, '-----END')) {
+                continue;
+            }
+            $base64 .= $line;
         }
+        
         return $base64;
     }
     
-    public static function base64ToPem(string $data, $type): string
+    /**
+     * 将Base64字符串转换为PEM格式证书
+     *
+     * @param string $data Base64编码的证书内容
+     * @param string $type 证书类型（如 PUBLIC KEY, PRIVATE KEY）
+     * @return string PEM格式证书
+     */
+    public static function base64ToPem(string $data, string $type): string
     {
-        if(empty($data) || strpos($data, '-----BEGIN')!==false) return $data;
-        $pem = "-----BEGIN ".$type."-----\n" .
+        if ($data === '' || str_contains($data, '-----BEGIN')) {
+            return $data;
+        }
+        
+        $pem = "-----BEGIN {$type}-----\n" .
             wordwrap($data, 64, "\n", true) .
-            "\n-----END ".$type."-----";
+            "\n-----END {$type}-----";
+        
         return $pem;
     }
 
+    /**
+     * 将PKCS#1格式PEM公钥转换为SPKI格式PEM公钥
+     *
+     * @param string $thing PKCS#1格式PEM公钥
+     * @return string SPKI格式PEM公钥
+     */
     public static function pkcs1ToSpkiPem(string $thing): string
     {
         $raw = self::pemToBase64($thing);
         $new = self::pkcs1ToSpki($raw);
+        
         return self::base64ToPem($new, 'PUBLIC KEY');
     }
 }

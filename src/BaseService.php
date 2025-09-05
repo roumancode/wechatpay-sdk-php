@@ -1,37 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace WeChatPay;
 
 use Exception;
 
 class BaseService
 {
-    //SDK版本号
-    static $VERSION = "3.0.10";
+    // SDK版本号
+    public static string $VERSION = "3.0.10";
 
-    //应用APPID
-    protected $appId;
+    // 应用APPID
+    protected string $appId;
 
-    //商户号
-    protected $mchId;
+    // 商户号
+    protected string $mchId;
 
-    //商户API密钥
-    protected $apiKey;
+    // 商户API密钥
+    protected string $apiKey;
 
-    //子商户号
-    protected $subMchId;
+    // 子商户号
+    protected ?string $subMchId = null;
 
-    //子商户公众账号ID
-    protected $subAppId;
+    // 子商户公众账号ID
+    protected ?string $subAppId = null;
 
-    //商户证书路径
-    protected $sslCertPath;
+    // 商户证书路径
+    protected ?string $sslCertPath = null;
 
-    //商户证书私钥路径
-    protected $sslKeyPath;
+    // 商户证书私钥路径
+    protected ?string $sslKeyPath = null;
 
-    //公共请求参数
-    protected $publicParams = [];
+    // 公共请求参数
+    protected array $publicParams = [];
 
     /**
      * @param array $config 微信支付配置信息
@@ -47,19 +49,16 @@ class BaseService
         if (empty($config['apikey'])) {
             throw new \InvalidArgumentException("商户API密钥不能为空");
         }
+        
         $this->appId = $config['appid'];
         $this->mchId = $config['mchid'];
         $this->apiKey = $config['apikey'];
-        $this->sslCertPath = $config['sslcert_path'];
-        $this->sslKeyPath = $config['sslkey_path'];
-        if (isset($config['sub_mchid'])) {
-            $this->subMchId = $config['sub_mchid'];
-        }
-        if (isset($config['sub_appid'])) {
-            $this->subAppId = $config['sub_appid'];
-        }
+        $this->sslCertPath = $config['sslcert_path'] ?? null;
+        $this->sslKeyPath = $config['sslkey_path'] ?? null;
+        
+        $this->subMchId = $config['sub_mchid'] ?? null;
+        $this->subAppId = $config['sub_appid'] ?? null;
     }
-
 
     /**
      * 请求接口并解析返回数据
@@ -69,15 +68,16 @@ class BaseService
      * @return mixed
      * @throws Exception
      */
-    public function execute(string $url, array $params, bool $cert = false)
+    public function execute(string $url, array $params, bool $cert = false): mixed
     {
         $params = array_merge($this->publicParams, $params);
         $params['sign'] = $this->makeSign($params);
         $xml = $this->array2Xml($params);
         $response = $this->curl($url, $xml, $cert);
         $result = $this->xml2array($response);
-        if (isset($result['return_code']) && $result['return_code'] == 'SUCCESS') {
-            if (isset($result['result_code']) && $result['result_code'] == 'SUCCESS') {
+        
+        if (isset($result['return_code']) && $result['return_code'] === 'SUCCESS') {
+            if (isset($result['result_code']) && $result['result_code'] === 'SUCCESS') {
                 if (isset($result['sign']) && !$this->checkSign($result)) {
                     throw new Exception('返回数据验签失败');
                 }
@@ -89,12 +89,14 @@ class BaseService
 
     /**
      * 验签
-     * @param $data
+     * @param array $data
      * @return bool
      */
-    protected function checkSign($data): bool
+    protected function checkSign(array $data): bool
     {
-        if (!isset($data['sign'])) return false;
+        if (!isset($data['sign'])) {
+            return false;
+        }
 
         $sign = $this->makeSign($data);
 
@@ -103,20 +105,20 @@ class BaseService
 
     /**
      * 生成签名
-     * @param $data
+     * @param array $data
      * @return string
      */
-    protected function makeSign($data): string
+    protected function makeSign(array $data): string
     {
         ksort($data);
         $signStr = '';
         foreach ($data as $k => $v) {
-            if($k != 'sign' && !is_array($v) && !$this->isEmpty($v)){
+            if ($k !== 'sign' && !is_array($v) && !$this->isEmpty((string) $v)) {
                 $signStr .= $k . '=' . $v . '&';
             }
         }
         $signStr = trim($signStr, '&') . '&key=' . $this->apiKey;
-        if (isset($data['sign_type']) && $data['sign_type'] == 'HMAC-SHA256') {
+        if (isset($data['sign_type']) && $data['sign_type'] === 'HMAC-SHA256') {
             $sign = hash_hmac("sha256", $signStr, $this->apiKey);
         } else {
             $sign = md5($signStr);
@@ -146,7 +148,7 @@ class BaseService
         $chars = "abcdefghijklmnopqrstuvwxyz0123456789";
         $str = "";
         for ($i = 0; $i < $length; $i++) {
-            $str .= substr($chars, mt_rand(0, strlen($chars) - 1), 1);
+            $str .= substr($chars, random_int(0, strlen($chars) - 1), 1);
         }
         return $str;
     }
@@ -158,7 +160,7 @@ class BaseService
      */
     protected function array2Xml(array $data): string
     {
-	    $xml = '<xml>';
+        $xml = '<xml>';
         foreach ($data as $key => $val) {
             $xml .= (is_numeric($val) ? "<{$key}>{$val}</{$key}>" : "<{$key}><![CDATA[{$val}]]></{$key}>");
         }
@@ -168,31 +170,50 @@ class BaseService
     /**
      * 解析XML数据
      * @param string $xml 源数据
-     * @return mixed
+     * @return array|false
      */
-    protected function xml2array(string $xml)
+    protected function xml2array(string $xml): array|false
     {
         if (!$xml) {
             return false;
         }
-		LIBXML_VERSION < 20900 && libxml_disable_entity_loader(true);
-        return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA), JSON_UNESCAPED_UNICODE), true);
+        
+        if (LIBXML_VERSION < 20900) {
+            libxml_disable_entity_loader(true);
+        }
+        
+        try {
+            $simpleXml = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+            if ($simpleXml === false) {
+                return false;
+            }
+            
+            $json = json_encode($simpleXml, JSON_UNESCAPED_UNICODE);
+            if ($json === false) {
+                return false;
+            }
+            
+            $result = json_decode($json, true);
+            return is_array($result) ? $result : false;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
-	/**
-	 * 以post方式提交xml到对应的接口url
-	 * @param string $url url
-	 * @param mixed $xml 需要post的xml数据
-	 * @param bool $useCert 是否需要证书
-	 * @param int $second url执行超时时间
-	 * @return string
-	 * @throws Exception
-	 */
-    protected function curl(string $url, $xml, bool $useCert = false, int $second = 10): string
+    /**
+     * 以post方式提交xml到对应的接口url
+     * @param string $url url
+     * @param string $xml 需要post的xml数据
+     * @param bool $useCert 是否需要证书
+     * @param int $second url执行超时时间
+     * @return string
+     * @throws Exception
+     */
+    protected function curl(string $url, string $xml, bool $useCert = false, int $second = 10): string
     {
         $ch = curl_init();
         $curlVersion = curl_version();
-        $ua = "WXPaySDK/" . self::$VERSION . " (" . PHP_OS . ") PHP/" . PHP_VERSION . " CURL/" . $curlVersion['version'] . " ". $this->mchId;
+        $ua = "WXPaySDK/" . self::$VERSION . " (" . PHP_OS . ") PHP/" . PHP_VERSION . " CURL/" . $curlVersion['version'] . " " . $this->mchId;
 
         curl_setopt($ch, CURLOPT_TIMEOUT, $second);
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -201,24 +222,28 @@ class BaseService
         curl_setopt($ch, CURLOPT_USERAGENT, $ua);
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
         if ($useCert) {
             if (!file_exists($this->sslCertPath) || !file_exists($this->sslKeyPath)) {
                 throw new Exception('商户证书文件不存在');
             }
-            //使用证书：cert 与 key 分别属于两个.pem文件
+            // 使用证书：cert 与 key 分别属于两个.pem文件
             curl_setopt($ch, CURLOPT_SSLCERTTYPE, 'PEM');
             curl_setopt($ch, CURLOPT_SSLCERT, $this->sslCertPath);
             curl_setopt($ch, CURLOPT_SSLKEYTYPE, 'PEM');
             curl_setopt($ch, CURLOPT_SSLKEY, $this->sslKeyPath);
         }
+        
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $xml);
+        
         $data = curl_exec($ch);
         if (curl_errno($ch) > 0) {
             $errmsg = curl_error($ch);
             curl_close($ch);
             throw new Exception($errmsg, 0);
         }
+        
         curl_close($ch);
         return $data;
     }

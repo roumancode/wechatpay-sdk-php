@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * 微信支付商户信息配置文件
  * APIv2版本
  */
-$wechatpay_config = [
+return [
     /**
      * 绑定支付的APPID
      */
@@ -27,7 +29,6 @@ $wechatpay_config = [
      */
     'appsecret' => '',
 
-
     /**
      * 商户证书路径（仅退款、撤销订单时需要）
      */
@@ -37,7 +38,6 @@ $wechatpay_config = [
      * 商户证书私钥路径（仅退款、撤销订单时需要）
      */
     'sslkey_path' => '/path/to/apiclient_key.pem',
-
 
     /**
      * 子商户号
@@ -50,4 +50,3 @@ $wechatpay_config = [
      */
     //'sub_appid' => '',
 ];
-return $wechatpay_config;

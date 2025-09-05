@@ -1,19 +1,21 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * 微信商家转账到零钱示例
  */
 
 require __DIR__ . '/../../vendor/autoload.php';
-@header('Content-Type: text/html; charset=UTF-8');
+header('Content-Type: text/html; charset=UTF-8');
 
 //引入配置文件
 $wechatpay_config = require('config.php');
 
 $client = new \WeChatPay\V3\TransferService($wechatpay_config);
 
-
-$out_batch_no = date("YmdHis").rand(111,999);
-$out_detail_no = date("YmdHis").rand(111,999);
+$out_batch_no = date("YmdHis") . random_int(111, 999);
+$out_detail_no = date("YmdHis") . random_int(111, 999);
 
 //转账明细
 $transfer_detail = [
@@ -23,6 +25,7 @@ $transfer_detail = [
     'openid' => '', //收款用户openid
     'user_name' => $client->rsaEncrypt('姓名') //收款用户姓名（不传则不校验）
 ];
+
 //接口入参
 $param = [
     'out_batch_no' => $out_batch_no, //商家批次单号
@@ -38,18 +41,25 @@ $param = [
 //发起转账请求
 try {
     $result = $client->transfer($param);
-    $batch_id = $result['batch_id'];
-    echo '转账发起成功！微信转账批次单号：'.$batch_id;
+    $batch_id = $result['batch_id'] ?? '';
+    
+    if ($batch_id === '') {
+        throw new Exception('未返回微信转账批次单号');
+    }
+    
+    echo '转账发起成功！微信转账批次单号：' . htmlspecialchars($batch_id);
 } catch (Exception $e) {
-    echo '转账发起失败！'.$e->getMessage();
+    echo '转账发起失败！' . htmlspecialchars($e->getMessage());
     exit;
 }
 
 //查询转账明细
-try{
+$out_trade_no = $out_detail_no; // 修正变量名
+
+try {
     $result = $client->transferoutdetail($out_batch_no, $out_trade_no);
-    print_r($result);
+    echo '<pre>' . htmlspecialchars(print_r($result, true)) . '</pre>';
 } catch (Exception $e) {
-    echo '查询失败！'.$e->getMessage();
+    echo '查询失败！' . htmlspecialchars($e->getMessage());
     exit;
 }
