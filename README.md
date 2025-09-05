@@ -1,5 +1,6 @@
 # WeChatPay SDK for PHP
 微信支付第三方 PHP SDK，基于官方最新版本，包含V2和V3两种接口。
+forked from [`netcccyun/wechatpay-sdk-php`](https://github.com/netcccyun/wechatpay-sdk-php) 升级到php8.0+
 
 ### 功能特点
 
@@ -18,7 +19,7 @@
 1. Composer 安装。
 
    ```bash
-   composer require cccyun/wechatpay-sdk
+   composer require tailroubin/wechatpay-sdk
    ```
 
 2. 创建APIv2配置文件 [`config.php`](./examples/config.php)，或APIv3配置文件 [`config.php`](./examples/V3/config.php)，填写微信支付商户信息。
