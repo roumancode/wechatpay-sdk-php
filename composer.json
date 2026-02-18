@@ -1,7 +1,7 @@
 {
 	"name": "tailroubin/wechatpay-sdk",
 	"description": "微信支付第三方 PHP SDK，基于官方最新版本，包含V2和V3两种接口。",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"type": "library",
 	"keywords": [
 		"wxpay",
