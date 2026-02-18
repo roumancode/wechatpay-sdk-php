@@ -184,11 +184,11 @@ class JsApiTool
         $res = curl_exec($ch);
         if ($res === false) {
             $error = curl_error($ch);
-            curl_close($ch);
+            //curl_close($ch);
             throw new Exception('CURL请求失败: ' . $error);
         }
         
-        curl_close($ch);
+        //curl_close($ch);
         return $res;
     }
 }

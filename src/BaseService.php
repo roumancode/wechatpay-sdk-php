@@ -178,10 +178,6 @@ class BaseService
             return false;
         }
         
-        if (LIBXML_VERSION < 20900) {
-            libxml_disable_entity_loader(true);
-        }
-        
         try {
             $simpleXml = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
             if ($simpleXml === false) {
@@ -240,11 +236,11 @@ class BaseService
         $data = curl_exec($ch);
         if (curl_errno($ch) > 0) {
             $errmsg = curl_error($ch);
-            curl_close($ch);
+            //curl_close($ch);
             throw new Exception($errmsg, 0);
         }
         
-        curl_close($ch);
+        //curl_close($ch);
         return $data;
     }
 }

@@ -47,10 +47,10 @@ class BaseService
     protected string $platformCertificateSerial;
 
     //商户API私钥
-    protected $merchantPrivateKeyInstance;
+    protected mixed $merchantPrivateKeyInstance;
 
     //微信支付公钥/平台证书
-    protected $platformPublicKeyInstance;
+    protected mixed $platformPublicKeyInstance;
 
     //是否国际版商户
     private bool $isGlobal = false;
@@ -659,7 +659,7 @@ class BaseService
         $data = curl_exec($ch);
         if ($data === false) {
             $errmsg = curl_error($ch);
-            curl_close($ch);
+            //curl_close($ch);
             throw new Exception($errmsg, 0);
         }
         
@@ -667,7 +667,7 @@ class BaseService
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $header = substr($data, 0, $headerSize);
         $body = substr($data, $headerSize);
-        curl_close($ch);
+        //curl_close($ch);
         
         return [$httpCode, $header, $body];
     }
