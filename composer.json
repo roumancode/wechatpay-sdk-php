@@ -12,7 +12,7 @@
 	"minimum-stability": "dev",
 	"prefer-stable": true,
 	"require": {
-		"php": ">=8.0 <=8.5",
+		"php": ">=8.0",
         "ext-openssl": "*",
         "ext-json": "*",
         "ext-curl": "*",
